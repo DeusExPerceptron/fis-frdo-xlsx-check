@@ -126,8 +126,6 @@ for xlsx_file in fn_xlsx_list:
     empty_row_found = False
     empty_row_before_end = False
 
-    print(f'***{xlsx_file}***')
-
     fn_log = f'{xlsx_file.rstrip(".xlsx")}.log'
 
     with open(fn_log, 'w', encoding='utf-8') as log_file_t:
@@ -140,18 +138,16 @@ for xlsx_file in fn_xlsx_list:
         add_log_msg(fn_log, str(e))
         continue
 
-    wb_xlsx_sheet_name = 'Шаблон'
-
-    if wb_xlsx_sheet_name not in xlsx_wb.sheetnames:
-        add_log_msg(fn_log, f'не удалось найти вкладку: {wb_xlsx_sheet_name}')
-        continue
+    wb_xlsx_sheet_name = str(xlsx_wb.sheetnames[0])
 
     try:
-        xlsx_ws = xlsx_wb[wb_xlsx_sheet_name]
+        xlsx_ws = xlsx_wb.worksheets[0]
     except Exception as e:
         add_log_msg(fn_log, f'не удалось открыть вкладку: {wb_xlsx_sheet_name}')
         add_log_msg(fn_log, str(e))
         continue
+
+    add_log_msg(fn_log, f'загружена вкладка: {wb_xlsx_sheet_name}')
 
     for col_i, col_name in fd.cols_name.items():
         if xlsx_ws[1][col_i].value.strip() != col_name:
@@ -161,7 +157,7 @@ for xlsx_file in fn_xlsx_list:
     for i_row, row in enumerate(xlsx_ws.iter_rows(min_row=2)):
         errors_dict = {}
 
-        if is_empty_value(row[0].value):
+        if is_empty_value(row[14].value):
             empty_row_found = True
             continue
         if empty_row_found:
