@@ -2,7 +2,7 @@ import openpyxl
 import os
 import datetime as dt
 import frdo_data as fd
-from typing import List, Any, Optional
+from typing import Dict, List, Any, Tuple, Optional
 
 
 class CheckResult:
@@ -155,48 +155,61 @@ for xlsx_file in fn_xlsx_list:
             continue
 
     for i_row, row in enumerate(xlsx_ws.iter_rows(min_row=2)):
-        errors_dict = {}
+        errors_dict: Dict[int, List[str]] = {}
 
-        if is_empty_value(row[14].value):
-            empty_row_found = True
-            continue
-        if empty_row_found:
-            empty_row_before_end = True
+        i_in_xlsx_check_list = (1, 2, 3, 4, 5, 6, 19, 20, 21, 22, 23)
+        i_can_be_empty_list = (16, 24, 25, 26, 27, 28, 29, 30, 31, 32)
+        i_value_digit_list = (11, 12, 13)
+        i_value_text_list = (14, 15, 16)
+        i_value_date_list = (9, 17)
+        i_value_snils_list = (18, )
+
+        empty_row_list = [i for i in fd.cols_name.keys()]
+        empty_row_list.remove(fd.cols_name_inv['Срок обучения, лет'])
 
         for chk_i in fd.cols_name.keys():
-            i_xlsx_check: Optional[str] = None
+            i_in_xlsx_check: Optional[str] = None
             i_can_be_empty: bool = False
             i_value_type: Optional[str] = None
             i_min_v: Optional[int | dt.date] = None
             i_max_v: Optional[int | dt.date] = None
 
-            if chk_i in (1, 2, 3, 4, 5, 6, 19, 20, 21, 22, 23):
-                i_xlsx_check = fd.cols_name[chk_i]
-            if chk_i in (16, 24, 25, 26, 27, 28, 29, 30, 31, 32):
+            if row[chk_i].value is None:
+                empty_row_list.remove(chk_i)
+
+            if chk_i in i_in_xlsx_check_list:
+                i_in_xlsx_check = fd.cols_name[chk_i]
+            if chk_i in i_can_be_empty_list:
                 i_can_be_empty = True
-            if chk_i in (14, 15, 16):
+            if chk_i in i_value_text_list:
                 i_value_type = 'alpha'
-            if chk_i in (11, 12, 13):
+            if chk_i in i_value_digit_list:
                 i_value_type = 'digit'
                 if chk_i in (11, 12):
                     i_min_v, i_max_v = 1900, 2100
                 elif chk_i == 13:
                     i_min_v, i_max_v = 0, 15
 
-            if chk_i == 18:
+            if chk_i in i_value_snils_list:
                 i_value_type = 'SNILS'
 
-            if chk_i in (9, 17):
+            if chk_i in i_value_date_list:
                 i_value_type = 'date'
                 if chk_i == 9:
                     i_min_v, i_max_v = dt.date(1950, 1, 1), dt.date(2100, 12, 31)
                 elif chk_i == 17:
                     i_min_v, i_max_v = dt.date(1900, 1, 1), dt.date(2100, 12, 31)
 
-            chk_status = is_correct_value(row[chk_i].value, xlsx_check=i_xlsx_check, can_be_empty=i_can_be_empty,
+            chk_status = is_correct_value(row[chk_i].value, xlsx_check=i_in_xlsx_check, can_be_empty=i_can_be_empty,
                                           value_type=i_value_type, min_v=i_min_v, max_v=i_max_v)
             if not chk_status.result:
                 errors_dict.setdefault(chk_i, []).extend(chk_status.msg)
+
+        if len(empty_row_list) == 0:
+            empty_row_found = True
+            continue
+        if empty_row_found:
+            empty_row_before_end = True
 
         if len(errors_dict) > 0:
             add_log_msg(fn_log, f'Строка {i_row + 2}:')
